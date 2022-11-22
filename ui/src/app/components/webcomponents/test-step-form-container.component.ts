@@ -138,6 +138,7 @@ export class TestStepFormContainerComponent extends BaseComponent implements OnI
       this.showForm = true;
     }
     this.stepForm.addControl('action', new FormControl(this.testStep.action, []));
+    this.mobileRecorderEventService.currentStep=this.testStep;
   }
 
   openFirstChangeTypeWithScroll() {

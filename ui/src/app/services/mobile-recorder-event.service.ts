@@ -19,6 +19,7 @@ export class MobileRecorderEventService {
   public returnData: Subject<any> = new Subject<any>();
   public isLandscapeMode: Boolean;
   public suggestionRuntimeVariable: string = 'suggestionRuntimeVariable';
+  public currentStep:TestStep;
 
   public emitStepRecord(testStep: TestStep) {
     this.createStepFromRecorder.emit(testStep);

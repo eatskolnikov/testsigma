@@ -272,9 +272,9 @@ export class MobileStepRecorderComponent extends MobileRecordingComponent implem
         this.mobileRecorderEventService.emitStepRecord(currentStep);
         this.stepList.isStepFetchCompletedTmp = false;
       } else {
-        this.createStepAfterRefresh(currentStep);
+        this.createStepAfterRefresh(currentStep)
       }
-    }, 500);
+    },500)
   }
 
   private addLaunchStep() {
@@ -289,10 +289,22 @@ export class MobileStepRecorderComponent extends MobileRecordingComponent implem
       }
     }, 500);
   }
-
+  setCurrentStepValue(currentStep: TestStep) {
+    currentStep.position = this.mobileRecorderEventService.currentStep.position;
+    currentStep.parentId = this.mobileRecorderEventService.currentStep.parentId;
+    currentStep.disabled = this.mobileRecorderEventService.currentStep.disabled;
+    currentStep.waitTime = this.mobileRecorderEventService.currentStep.waitTime;
+    currentStep.visualEnabled = this.mobileRecorderEventService.currentStep.visualEnabled;
+    currentStep.ignoreStepResult = this.mobileRecorderEventService.currentStep.ignoreStepResult;
+  }
   public createStep(currentStep: TestStep, isSwitchStep?:boolean) {
     this.dialog.openDialogs?.find( dialog => dialog.componentInstance instanceof TestStepMoreActionFormComponent)?.close();
     currentStep.action = currentStep.template.actionText(currentStep?.element?.toString(), currentStep?.testDataVal?.toString())
+    if(this.mobileRecorderEventService.currentStep){
+      if(!this.mobileRecorderEventService.currentStep.id){
+        this.setCurrentStepValue(currentStep);
+      }
+    }
     if (this.stepList.isAnyStepEditing) {
       if (this.stepList.editedStep.isConditionalType||this.isElseIfStep) {
         currentStep.parentId = this.stepList.editedStep.id;
@@ -479,7 +491,7 @@ export class MobileStepRecorderComponent extends MobileRecordingComponent implem
           }
         });
       } else {
-        this.createStep(currentStep);
+        // this.createStep(currentStep);
       }
     })
   }

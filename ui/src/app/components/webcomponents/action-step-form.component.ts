@@ -1719,7 +1719,7 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
 
   private populateAndSaveFromRecorder(testStep: TestStep) {
     if (this.eventEmitterAlreadySubscribed ||
-      (this.mobileStepRecorder.stepList.editedStep && this.mobileStepRecorder.stepList.editedStep.id != this.testStep.parentId)) return;
+      (this.mobileStepRecorder?.stepList?.editedStep?.isEditing && this.mobileStepRecorder.stepList.editedStep.id != this.testStep.parentId)) return;
     let currentStep: TestStep = new TestStep();
     Object.assign(currentStep, this.testStep);
     if (this.testStep.position == 0) {

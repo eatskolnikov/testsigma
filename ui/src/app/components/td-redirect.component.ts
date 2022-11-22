@@ -30,6 +30,7 @@ export class TdRedirectComponent implements OnInit, OnDestroy {
     });
   }
 
+
   redirectToVersion() {
     this.userPreferenceService.show().subscribe(res => {
       if (res?.versionId)
