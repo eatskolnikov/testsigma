@@ -68,7 +68,28 @@
     tabindex="-1"
     id="testDataContainer"
     class="action-drop-down-container">
-    <div  *ngIf="!currentTemplate?.allowedValues && !currentAddonAllowedValues">
+    <div *ngIf="listDataItem?.length" (click)="stopEvent($event)">
+      <div class="position-relative px-5">
+        <mat-progress-spinner
+          style="z-index: 1;top: 7px!important;"
+          class="search-spinner" mode="indeterminate" diameter="15" *ngIf="isFetchingListData">
+        </mat-progress-spinner>
+        <input
+          #searchInput
+          class="ts-col-100 py-4 px-5 theme-border border-rds-3"
+          (keydown)="$event.stopPropagation()"
+          type="text" autocomplete="off">
+      </div>
+      <div
+        *ngFor="let value of listDataItem; let index=index"
+        (click)="selectTestDataProfile(value)"
+        class="d-flex align-items-center pointer py-8 grey-on-hover">
+        <span
+          class="px-14"
+          [textContent]="value?.name || value"></span>
+      </div>
+    </div>
+    <div *ngIf="isDefaultType">
       <div
         *ngFor="let type of dataTypes; let index=index"
         [class.h-active]="currentDataTypeIndex == index"
@@ -81,7 +102,7 @@
             [translate]="'action.testDataType.'+type"></span>
       </div>
     </div>
-    <div  *ngIf="currentTemplate?.allowedValues">
+    <div  *ngIf="isAllowedValues">
       <div
         *ngFor="let value of currentTemplate?.allowedValues; let index=index"
         [class.h-active]="currentDataTypeIndex == index"
@@ -94,7 +115,7 @@
       </div>
   </div>
 
-  <div  *ngIf="currentAddonTemplate && currentAddonAllowedValues">
+  <div  *ngIf="isKibbutzAllowedValues">
     <div
       *ngFor="let value of currentAddonAllowedValues; let index=index"
       [class.h-active]="currentDataTypeIndex == index"

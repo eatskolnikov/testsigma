@@ -51,6 +51,10 @@ import {AddonTestDataFunctionParameter} from "../../models/addon-test-data-funct
 import {StepActionType} from "../../enums/step-action-type.enum";
 import {ActionTestDataRuntimeVariableSuggestionComponent} from './action-test-data-runtime-variable-suggestion.component';
 import {extractStringByDelimiterByPos} from "../../utils/strings";
+import {TestData} from "../../models/test-data.model";
+import {TestDataService} from "../../services/test-data.service";
+import {TestDataSetService} from "../../services/test-data-set.service";
+
 
 @Component({
   selector: 'app-action-step-form',
@@ -142,6 +146,9 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
   isAttachTestDataEvent: boolean = false;
   private runtimeSuggestion: MatDialogRef<ActionTestDataRuntimeVariableSuggestionComponent>;
   public selectedElementName : String;
+  public listDataItem:string[] | TestData[];
+  public isFetchingListData: boolean = false;
+  public isParameter: boolean = false;
 
   get mobileStepRecorder(): MobileStepRecorderComponent {
     return this.matModal.openDialogs.find(dialog => dialog.componentInstance instanceof MobileStepRecorderComponent).componentInstance;
@@ -170,7 +177,9 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
     private matModal: MatDialog,
     private router: Router,
     private _eref: ElementRef,
-    private mobileRecorderEventService: MobileRecorderEventService) {
+    private mobileRecorderEventService: MobileRecorderEventService,
+    private testDataService: TestDataService,
+    private testDataSetService: TestDataSetService) {
     super(authGuard, notificationsService, translate, toastrService);
   }
 
@@ -227,6 +236,11 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
     }
     this.setTemplate(this.currentTemplate);
     this.showTemplates = false;
+    if(changes['conditionTypeChange']?.currentValue && !changes['conditionTypeChange']?.firstChange) {
+      this.showActions = true;
+      this.showTemplates = true;
+      this.currentFocusedIndex = 0;
+    }
   }
 
   getAddonTemplateAllowedValues(reference?) {
@@ -468,19 +482,6 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
     if (this.version.workspace.isRest)
       testStep.type = TestStepType.REST_STEP;
     return testStep
-  }
-
-  addWhileConditionStep(step: TestStep) {
-    this.testStep.conditionType = TestStepConditionType.LOOP_WHILE;
-    this.testStep.priority = TestStepPriority.MINOR;
-    this.testStep.parentId = step.id;
-    this.testStep.parentStep = step;
-    this.testStep.siblingStep = step;
-    this.testStep.position = step.position + 1;
-    this.testStep.stepDisplayNumber = step.stepDisplayNumber + ".1";
-    step.siblingStep = this.testStep;
-    step.isAfter = true;
-    // return afterStep;
   }
 
   public fetchSteps() {
@@ -842,7 +843,9 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
         item.addEventListener('click', (event) => {
           this.isCurrentDataTypeRaw = false;
           console.log('test data click event triggered');
-          this.getAddonTemplateAllowedValues(item.dataset?.reference)
+          this.getAddonTemplateAllowedValues(item.dataset?.reference);
+          this.getTestdataProfile(item.dataset?.reference);
+          this.getParameter(item.dataset?.reference);
           this.currentDataTypeIndex = 0;
           item.contentEditable = true;
           this.currentDataItemIndex = index;
@@ -1093,6 +1096,7 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
       return;
     }
     this.selectNodeAndFocus(element);
+    //this.isShowDataTypes = false;
   }
 
   setCursorAtAttribute() {
@@ -1182,15 +1186,6 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
     })
   }
 
-
-  getAddonActionData(map: Map<string, any>) {
-    let result = [];
-    Object.keys(map).forEach(key => {
-      result.push(map[key]);
-    });
-    return result;
-  }
-
   private editSerialize() {
     if (this.testStep.addonTemplate) {
       this.replacer.nativeElement.innerHTML = this.testStep?.parsedAddonStep;
@@ -1227,12 +1222,58 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
         if (this.testStep?.testDataVal)
           this.assignDataValue(this.getDataTypeString(this.testStep?.testDataType, this.testStep?.testDataVal));
         if (this.attributePlaceholder())
-          this.attributePlaceholder().innerHTML = this.testStep?.attribute;
+          this.setStepTestData();
+        if (this.testStep.isForLoop && this.attributePlaceholder()?.length) {
+          this.setStepLoopData();
+        }
         this.attachActionTemplatePlaceholderEvents();
       }
       else
         this.replacer.nativeElement.innerHTML = this.testStep?.action;
     }
+  }
+
+  private setStepLoopData() {
+    this.attributePlaceholder().forEach((item, index) => {
+      let reference = item.dataset?.reference;
+      let testData = this.testStep.forLoopData.setValuesParsed(reference);
+      item.setAttribute("data-test-data-type",testData?.['type']);
+      if(testData?.['type'] == TestDataType.function) {
+        let functionData = testData?.['function'];
+        item = this.testDataFunctionDataAssign(item,functionData)
+      }
+      item.innerHTML = this.getDataTypeString(testData?.['type'], testData?.['value']);
+    })
+  }
+
+  private setStepTestData(){
+    this.testDataPlaceholder().forEach((item, index) => {
+      let reference = item.dataset?.reference;
+      let testData = this.testStep.testData?.[reference];
+      item.setAttribute("data-test-data-type",testData.type);
+      if(testData.type == TestDataType.function) {
+        item = this.testDataFunctionDataAssign(item,testData)
+      }
+      item.innerHTML = this.getDataTypeString(testData?.type, testData?.['value']);
+    })
+  }
+
+  private testDataFunctionDataAssign(item, functionData){
+    if(functionData.kibbutzTDF) {
+      if(functionData.kibbutzTDF.testDataFunctionArguments)
+        item.setAttribute('data-test-data-function-arguments', JSON.stringify(functionData.kibbutzTDF.testDataFunctionArguments));
+      if(functionData.kibbutzTDF.testDataFunctionId)
+        item.setAttribute('data-test-data-function-id', functionData.kibbutzTDF.testDataFunctionId);
+      item.setAttribute('data-function-data', JSON.stringify(functionData.kibbutzTDF));
+      item.setAttribute('data-is-kibbutz-fn', true);
+    } else if(functionData.testDataFunction){
+      item.setAttribute('data-function-data', JSON.stringify(functionData.testDataFunction));
+      if(functionData.testDataFunction.args)
+        item.setAttribute('data-test-data-function-arguments', JSON.stringify(functionData.testDataFunction.args));
+      if(functionData.testDataFunction.id)
+        item.setAttribute('data-test-data-function-id', functionData.testDataFunction.id);
+    }
+    return item;
   }
 
   private showTestDataCF(id) {
@@ -1756,6 +1797,10 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
     if (Boolean(this.stepRecorderView)) {
       this.matModal.openDialogs?.find(dialog => dialog.componentInstance instanceof TestStepMoreActionFormComponent)?.close();
     }
+    if(step.isForLoop){
+      step.forLoopData = this.testStep.forLoopData;
+      //step.forLoopData.testDataProfileData = this.selectedTestDataProfile;
+    }
     this.actionForm.reset();
     this.onSave.emit(step);
     this.saving = false;
@@ -1857,5 +1902,132 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
   }
   public extractStringByKey(str:string){
     return extractStringByDelimiterByPos({str:str})
+  }
+
+  public getParameter(reference) {
+    this.listDataItem = undefined;
+    this.isParameter = false;
+    if ('left-data' == reference && this.testStep.isTestdataParameter) {
+      if(true) {
+        this.isParameter = true;
+        this.fetchTestDataSet();
+        this.focusOnSearch();
+      } else {
+
+      }
+    }
+  }
+  public getTestdataProfile(reference?) {
+    this.listDataItem = undefined;
+    this.isParameter = false;
+    if ('test-data-profile' == reference && this.testStep.isTestdataProfile) {
+      this.fetchTestDataProfile();
+      this.focusOnSearch();
+    }
+  }
+
+  get isDefaultType() {
+    return true;
+    //return !this.listDataItem && (!this.currentAllowedValues?.length || (this.isSpotEditEnable &&
+    //  !this.currentAllowedValues?.length)) && !this.currentKibbutzAllowedValues?.length;
+  }
+
+  get isAllowedValues() {
+    return true;
+    //return !this.listDataItem && !this.currentKibbutzAllowedValues?.length && (this.currentAllowedValues?.length || this.testStep?.kibbutzTemplate?.isConditionalIF || this.testStep?.kibbutzTemplate?.isConditionalWhileLoop)
+  }
+
+  get isKibbutzAllowedValues(){
+    return false;
+    //return !this.listDataItem && this.currentKibbutzTemplate && this.currentKibbutzAllowedValues;
+  }
+
+  selectTestDataProfile(testdata) {
+    //if(!this.isSpotEditEnable) {
+    //  this.resetTestData();
+    //}
+    this.resetCFArguments();
+    this.currentTestDataType = TestDataType.raw;
+    this.assignDataValue(testdata.name || testdata, this.testDataPlaceholder());
+    this.showDataTypes = false;
+    if(testdata instanceof TestData) {
+      //this.selectedTestDataProfile = testdata;
+      //if(this.testStep.isTestDataParameter)
+      //  this.fetchTestDataSet();
+    }
+  }
+
+  fetchTestDataProfile(term?) {
+    let searchName = '';
+    if (term) {
+      searchName = ",testDataName:*" + term + "*";
+    }
+    this.isFetchingListData = true;
+    this.testDataService.findAll("versionId:" + this.version.id + searchName).subscribe(res => {
+      this.listDataItem = res.content;
+      if (this.testCase?.id && this.testCase?.testDataId) {
+        if (this.listDataItem && !this.listDataItem?.find(req => req?.['id'] == this.testCase.testDataId)) {
+          this.listDataItem.push(this.testCase.testData)
+        }
+      }
+      this.isFetchingListData = false;
+    }, error => {
+      this.isFetchingListData = false;
+    });
+  }
+
+  fetchTestDataSet(term?) {
+    this.isFetchingListData = true;
+    if(this.listDataItem && term?.length) {
+      let returnData = [];
+      this.listDataItem.forEach(data => {
+        if(data.toLowerCase().includes(term)){
+          returnData.push(data);
+        }
+      });
+      this.listDataItem = returnData;
+      this.isFetchingListData = false;
+      return
+    }
+    this.testDataSetService.findAll("testDataProfileId:" + this.testCase?.testData?.id , 'position').subscribe(res => {
+      this.listDataItem = Object.keys(res?.content[0]?.data);
+      this.isFetchingListData = false;
+    }, error => {
+      this.isFetchingListData = false;
+    })
+  }
+
+  focusOnSearch() {
+    this.attachDebounceEvent();
+  }
+
+  attachDebounceEvent() {
+    if (this.searchInput && this.searchInput.nativeElement)
+      fromEvent(this.searchInput.nativeElement, 'keyup')
+        .pipe(
+          filter(Boolean),
+          debounceTime(500),
+          distinctUntilChanged(),
+          tap((event: KeyboardEvent) => {
+            if (this.searchInput?.nativeElement?.value) {
+              if(this.isParameter){
+                this.fetchTestDataSet(this.searchInput.nativeElement.value)
+              } else {
+                this.fetchTestDataProfile(this.searchInput.nativeElement.value)
+              }
+            } else {
+              if(this.isParameter){
+                this.fetchTestDataSet()
+              } else {
+                this.fetchTestDataProfile()
+              }
+            }
+          })
+        )
+        .subscribe();
+    else
+      setTimeout(() => {
+        this.attachDebounceEvent();
+      }, 100);
   }
 }

@@ -22,6 +22,7 @@
         class="section-action-icons"></i>
     </div>
     <div
+      (click)="cancelingBubbling()"
       class="dropdown-menu drop-down-transparent min-w">
       <ul
         class="step-type-selection">
@@ -44,7 +45,7 @@
           *ngIf="isIfType || isElseIfType"
           class="my-6 border-separator-b-1 line-height-none"></li>
         <li *ngIf="!version?.workspace?.isRest"
-            [class.active]="isActionText"
+            [class.active]="isActionText && !testStep?.isForLoop"
             class="step-type" (click)="changeStepType(testStepType.ACTION_TEXT)">
           <i class="fa-nlp-new step-icon"></i>
           <span
@@ -71,9 +72,9 @@
             [translate]="'step.rest.label'"></span>
         </li>
         <li
-          [class.active]="isForLoop"
-          *ngIf="!isWhileParentORCondition && !testStep?.isConditionalIf"
-          (click)="changeStepType(testStepType.FOR_LOOP)"
+          [class.active]="testStep?.isForLoop"
+          *ngIf="!testStep?.isConditionalIf"
+          (click)="fetchTestData()"
           class="step-type">
           <i class="fa-power-loop step-icon"></i>
           <span
@@ -81,7 +82,7 @@
             [translate]="'step.for.label'"></span>
         </li>
         <li
-          *ngIf="!isWhileParentORCondition && !isParentForLoop && !testStep?.isConditionalIf"
+          *ngIf="!testStep?.isConditionalIf"
           (click)="changeStepType(testStepType.ACTION_TEXT, true)"
           class="step-type">
           <i class="fa-while-loop step-icon"></i>
@@ -113,7 +114,7 @@
     [formGroup]="stepForm"
     #naturalStep
     id="naturalStep"
-    [class.theme-border-b]="!isActionText"
+    [class.theme-border-b]="!isActionText || (isNoTestDataProfile && testStep.isForLoop)"
     class=" py-15 ml-5 pl-7 form-group p-0 ts-col-auto d-flex align-items-baseline flex-nowrap">
     <div
       class="result-status-8 ng-binding x-sm-size text-white list-number pill-number"
@@ -192,16 +193,6 @@
     (onSave)="afterSaveStep($event)"
     (onSubmitted)="setFormSubmitted()"
     class="pb-40 d-block"></app-test-step-rest-form>
-
-  <app-test-step-for-loop-form
-    *ngIf="isForLoop && showForm"
-    [testStep]="testStep"
-    [version]="version"
-    [indentation]="indexPosition().toString().length > 3 ? indexPosition().toString().length : 0"
-    [stepForm]="stepForm"
-    [stepRecorderView]="stepRecorderView"
-    (onSave)="afterSaveStep($event)"
-    (onCancel)="hideForm()"></app-test-step-for-loop-form>
   <app-test-step-group-form
     [class.has-else-if]="isElseIfType"
     [class.has-if]="isIfType"

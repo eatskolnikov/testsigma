@@ -34,9 +34,6 @@ import {TestCaseResult} from "../../models/test-case-result.model";
             <span
               *ngIf="testStepResult.isForLoop">
             <i class="fa-power-loop mr-5 text-nowrap"></i>
-            <span [translate]="'step.condition_type.'+testStepResult?.stepDetail?.conditionType"></span>
-            #{{testStepResult.metadata.forLoop.index}} :: {{testStepResult.metadata.forLoop.testDataName}}
-              - {{testStepResult.metadata.forLoop.iteration}}
           </span>
             <span
               [matTooltip]="'test_step.type.REST_STEP' | translate"

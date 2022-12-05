@@ -82,7 +82,6 @@ import {TestStepFormContainerComponent} from "../components/webcomponents/test-s
 import {DragDropModule} from "@angular/cdk/drag-drop";
 import {ActionStepFormComponent} from "../components/webcomponents/action-step-form.component";
 import {TestStepRestFormComponent} from "../components/webcomponents/test-step-rest-form.component";
-import {TestStepForLoopFormComponent} from "../components/webcomponents/test-step-for-loop-form.component";
 import {CodemirrorModule} from "@ctrl/ngx-codemirror";
 import {TestStepGroupFormComponent} from "../components/webcomponents/test-step-group-form.component";
 import {RestFormRequestDetailsComponent} from "../components/webcomponents/rest-form-request-details.component";
@@ -139,7 +138,6 @@ import {TestsigmaGitHubStarLoveComponent} from "./components/webcomponents/tests
       TestStepFormContainerComponent,
       ActionStepFormComponent,
       TestStepRestFormComponent,
-      TestStepForLoopFormComponent,
       TestStepGroupFormComponent,
       RestFormRequestDetailsComponent,
       RestFormResponseDetailsComponent,

@@ -33,6 +33,7 @@ import {ElementFormComponent} from "./element-form.component";
 import {MobileStepRecorderComponent} from "../../agents/components/webcomponents/mobile-step-recorder.component";
 import {MobileRecorderEventService} from "../../services/mobile-recorder-event.service";
 import {OnBoardingSharedService} from "../../services/on-boarding-shared.service";
+import {TestDataService} from "../../services/test-data.service";
 
 @Component({
   selector: 'app-test-step-form-container',
@@ -66,6 +67,7 @@ export class TestStepFormContainerComponent extends BaseComponent implements OnI
   @Output() stepFormChange = new EventEmitter<FormGroup>();
   public formSubmitted: boolean = false;
   @Input() stepRecorderView?: boolean;
+  public isNoTestDataProfile : boolean = false;
 
   constructor(
     public authGuard: AuthenticationGuard,
@@ -78,7 +80,8 @@ export class TestStepFormContainerComponent extends BaseComponent implements OnI
     private _ngZone: NgZone,
     private testStepService: TestStepService,
     private onBoardingSharedService: OnBoardingSharedService,
-    private mobileRecorderEventService: MobileRecorderEventService
+    private mobileRecorderEventService: MobileRecorderEventService,
+    private testDataService: TestDataService
   ) {
     super(authGuard, notificationsService, translate, toastrService);
   }
@@ -97,26 +100,6 @@ export class TestStepFormContainerComponent extends BaseComponent implements OnI
 
   get isForLoop() {
     return this.stepType == TestStepType.FOR_LOOP;
-  }
-
-  get isWhileParentORCondition() {
-    return this.getIsParentLoop(this.testStep, false) || this.testStep?.isConditionalWhileLoop;
-  }
-
-  getIsParentLoop(testStep: TestStep, isForLoop){
-    if(testStep.parentStep){
-      if(isForLoop ? testStep.parentStep?.isForLoop : testStep.parentStep?.isConditionalWhileLoop){
-        return true;
-      } else{
-        return this.getIsParentLoop(testStep.parentStep, isForLoop);
-      }
-    } else {
-      return false;
-    }
-  }
-
-  get isParentForLoop() {
-    return this.getIsParentLoop(this.testStep, true);
   }
 
   ngOnInit(): void {
@@ -186,9 +169,6 @@ export class TestStepFormContainerComponent extends BaseComponent implements OnI
     delete this.testStep.stepGroup;
     delete this.testStep.restStep;
     delete this.testStep.testData;
-    delete this.testStep.forLoopTestDataId;
-    delete this.testStep.forLoopStartIndex;
-    delete this.testStep.forLoopEndIndex;
     this.testStep.type = TestStepType.ACTION_TEXT;
     this.testStep.conditionType = TestStepConditionType.LOOP_WHILE;
     this.testStep.conditionIf = [ResultConstant.SUCCESS];
@@ -200,7 +180,7 @@ export class TestStepFormContainerComponent extends BaseComponent implements OnI
     if (this.testStep.isConditionalWhileLoop) {
       delete this.testStep.conditionType;
     }
-    if (this.testStep.isConditionalIf || this.stepType==TestStepType.FOR_LOOP || isWhile) {
+    if (this.testStep.isConditionalIf || isWhile) {
       this.testStep.priority = TestStepPriority.MINOR;
       this.testStep.ignoreStepResult = true;
     }
@@ -342,9 +322,25 @@ export class TestStepFormContainerComponent extends BaseComponent implements OnI
     }
   }
 
-  triggerResize() {
-    this._ngZone.onStable.pipe(take(1))
-      .subscribe(() => this.autosize.resizeToFitContent(true));
+  createConditionalFor() {
+    this.isNoTestDataProfile = false;
+    this.changeStepType(TestStepType.ACTION_TEXT);
+    this.testStep.conditionType = TestStepConditionType.LOOP_FOR;
+    this.testStep.priority = TestStepPriority.MINOR;
+    this.testStep.ignoreStepResult = true;
+  }
+
+  fetchTestData(){
+    this.testDataService.findAll("versionId:" + this.version.id ).subscribe(res => {
+      this.createConditionalFor();
+      if (res.empty) {
+        this.isNoTestDataProfile = true;
+        return
+      }
+    }, error => {
+      this.createConditionalFor();
+      this.isNoTestDataProfile = true;
+    })
   }
 
   get testStepType() {
@@ -442,6 +438,11 @@ export class TestStepFormContainerComponent extends BaseComponent implements OnI
         this.updateChildStepsDisabledProperty(step);
       }
     });
+  }
+
+  cancelingBubbling(){
+    event.stopPropagation();
+    event.stopImmediatePropagation();
   }
 
 }

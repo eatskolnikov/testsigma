@@ -9,6 +9,7 @@ import {catchError, map} from "rxjs/operators";
 import {TestStep} from "../models/test-step.model";
 import {TestStepPriority} from "../enums/test-step-priority.enum";
 import {RestStepEntity} from "../models/rest-step-entity.model";
+import {ForLoopData} from "../models/for-loop-data.model";
 @Injectable({
   providedIn: 'root'
 })
@@ -18,6 +19,18 @@ export class TestStepService {
     private http: HttpClient,
     private httpHeaders: HttpHeadersService,
     private URLConstants: UrlConstantsService) {
+  }
+
+  findAllForLoopData(filter?: string, sortBy?: string, pageable?: Pageable): Observable<Page<ForLoopData>> {
+    return this.http.get<Page<ForLoopData>>(this.URLConstants.forLoopConditionsUrl, {
+      headers: this.httpHeaders.contentTypeApplication,
+      params: this.httpHeaders.serializeParams(filter, sortBy, pageable)
+    }).pipe(
+      map(data => new Page<ForLoopData>().deserialize(data, ForLoopData),
+        catchError(error => {
+          return throwError("Problem while fetching for loop conditions", error)
+        }))
+    )
   }
 
   public findAll(filter?: string, sortBy?: string, pageable?: Pageable | undefined): Observable<Page<TestStep>> {

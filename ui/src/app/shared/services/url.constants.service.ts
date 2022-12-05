@@ -69,6 +69,7 @@ export class UrlConstantsService {
   public authConfigURL = this.apiBase+ '/auth_config';
   public serverURL = this.apiBase+ '/servers';
   public osServerDetailsURL = this.apiBase + '/os_server_details';
+  public forLoopConditionsUrl = this.apiBase + '/for_loop_conditions';
 
   public backupUrl = this.apiBase+ "/settings/backups" ;
   public backupExportUrl = this.apiBase+ "/settings/backups/export" ;
