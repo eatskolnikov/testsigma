@@ -12,6 +12,8 @@ package com.testsigma.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 public class NaturalTextActionData {
   @JsonProperty("test-data")
@@ -24,4 +26,6 @@ public class NaturalTextActionData {
   public String fromElement;
   @JsonProperty("to-element")
   public String toElement;
+  @JsonProperty("test-data-for-loop")
+  public Map<String, String> testDataForLoop;
 }

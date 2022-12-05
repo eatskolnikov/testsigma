@@ -11,6 +11,8 @@ package com.testsigma.dto;
 
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 public class NaturalTextActionDataDTO {
   public String testData;
@@ -18,4 +20,5 @@ public class NaturalTextActionDataDTO {
   public String attribute;
   public String fromElement;
   public String toElement;
+  public Map<String, String> testDataForLoop;
 }
