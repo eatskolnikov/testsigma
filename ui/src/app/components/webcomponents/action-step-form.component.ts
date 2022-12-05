@@ -1732,6 +1732,8 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
       returnData = returnData.filter(template => template.stepActionType === StepActionType.IF_CONDITION);
     } else if (this.testStep.conditionType === TestStepConditionType.LOOP_WHILE) {
       returnData = returnData.filter(template => template.stepActionType === StepActionType.WHILE_LOOP);
+    } else if (this.testStep.conditionType === TestStepConditionType.LOOP_FOR) {
+      returnData = returnData.filter(template => template.stepActionType === StepActionType.FOR_LOOP);
     } else {
       returnData = returnData.filter(template => !(template.stepActionType === StepActionType.WHILE_LOOP ||
         template.stepActionType === StepActionType.IF_CONDITION));
