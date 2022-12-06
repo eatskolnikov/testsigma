@@ -49,7 +49,9 @@ import {AddonTestDataFunctionService} from "../../services/addon-default-data-ge
 import {AddonTestDataFunction} from "../../models/addon-test-data-function.model";
 import {AddonTestDataFunctionParameter} from "../../models/addon-test-data-function-parameter.model";
 import {StepActionType} from "../../enums/step-action-type.enum";
-import {ActionTestDataRuntimeVariableSuggestionComponent} from './action-test-data-runtime-variable-suggestion.component';
+import {
+  ActionTestDataRuntimeVariableSuggestionComponent
+} from './action-test-data-runtime-variable-suggestion.component';
 import {extractStringByDelimiterByPos} from "../../utils/strings";
 import {TestData} from "../../models/test-data.model";
 import {TestDataService} from "../../services/test-data.service";
@@ -79,6 +81,7 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
   @Input('selectedTemplate') currentTemplate: NaturalTextActions;
   @Input('testCaseResultId') testCaseResultId: number;
   @Input('isDryRun') isDryRun: boolean;
+  @Input('isSpotEditEnable') isSpotEditEnable: boolean;
   @Output('onSuggestion') public onSuggestion = new EventEmitter<any>();
   @Optional() @Input('conditionTypeChange') conditionTypeChange: TestStepConditionType;
 
@@ -87,6 +90,8 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
   @ViewChild('actionsDropDownContainer') actionsDropDownContainer: ElementRef;
   @ViewChild('displayNamesContainer') displayNamesContainer: ElementRef;
   @ViewChild('dataTypesContainer') dataTypesContainer: ElementRef;
+  public selectedTestDataProfile: TestData;
+  public currentAllowedValues = [];
   public currentFocusedIndex: number;
   public filteredTemplates: NaturalTextActions[];
   public filteredAddonTemplates: AddonNaturalTextAction[];
@@ -760,13 +765,9 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
 
   selectAddonTemplate(template) {
     delete this.currentTemplate;
-    //this.selectedTemplate = undefined;
-    if (this.testStep.id) {
-      //this.resetDataMap();
-    }
     this.testStep.addonTemplate = template;
     setTimeout(() => {
-      //this.resetCFArguments();
+      this.resetCFArguments();
       this.showTemplates = false;
       this.setAddonTemplate(template);
     }, 100);
@@ -774,7 +775,6 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
 
   setAddonTemplate(template: AddonNaturalTextAction) {
     if (template) {
-      //this.resetDataMap();
       this.currentAddonTemplate = template;
       this.replacer.nativeElement.innerHTML = template.htmlGrammar;
       this.attachActionTemplatePlaceholderEvents();
@@ -855,6 +855,7 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
             this.showDataDropdown();
           else
             this.showTemplates = false;
+          this.setSuggestionData(item);
           event.stopPropagation();
           event.stopImmediatePropagation();
           return false;
@@ -864,6 +865,7 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
             return this.stopEvent(event);
           }
           this.getAddonTemplateAllowedValues(item.dataset?.reference);
+          this.setSuggestionData(item);
           let value = item?.textContent;
           let testDataType = ['@|', '!|', '~|', '$|', '*|'].some(type => item?.textContent.includes(type))
           if (["Escape", "Tab"].includes(event.key))
@@ -901,6 +903,7 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
             return this.stopEvent(event);
           }
           this.getAddonTemplateAllowedValues(item.dataset?.reference);
+          this.setSuggestionData(item);
           this.urlPatternError = false;
           let testDataType = ['@|', '!|', '~|', '$|', '*|'].some(type => item?.textContent.includes(type))
           if (event.key == "Backspace") {
@@ -1036,6 +1039,32 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
       type = 'number'
     }
     return type;
+  }
+
+  setSuggestionData(item){
+    this.getAllowedValues(item.dataset?.reference);
+    this.getTestdataProfile(item.dataset?.reference);
+    this.getParameter(item.dataset?.reference);
+    this.getTestdataParameters(item.dataset?.reference);
+  }
+
+  public getAllowedValues(reference?) {
+    this.currentAllowedValues = undefined;
+    let dataList = this.currentTemplate?.data.testData ? Object.keys(this.currentTemplate?.data.testData) : []
+    dataList.forEach(parameter => {
+      if (parameter == reference) {
+        this.currentAllowedValues = this.currentTemplate?.allowedValues?.[parameter]?.length ? this.currentTemplate?.allowedValues?.[parameter] : undefined;
+      }
+    })
+  }
+
+  public getTestdataParameters(reference?) {
+    this.listDataItem = undefined;
+    this.isParameter = false;
+    if ('parameter' == reference && this.testStep.isTestdataParameter) {
+      this.fetchTestDataSet();
+      this.focusOnSearch();
+    }
   }
 
   selectTestDataType(type, isFromHtml?: boolean, isSkipSelect?: boolean) {
@@ -1801,7 +1830,7 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
     }
     if(step.isForLoop){
       step.forLoopData = this.testStep.forLoopData;
-      //step.forLoopData.testDataProfileData = this.selectedTestDataProfile;
+      step.forLoopData.testDataProfileData = this.selectedTestDataProfile;
     }
     this.actionForm.reset();
     this.onSave.emit(step);
@@ -1929,33 +1958,30 @@ export class ActionStepFormComponent extends BaseComponent implements OnInit {
   }
 
   get isDefaultType() {
-    return true;
-    //return !this.listDataItem && (!this.currentAllowedValues?.length || (this.isSpotEditEnable &&
-    //  !this.currentAllowedValues?.length)) && !this.currentKibbutzAllowedValues?.length;
+    return !this.listDataItem && (!this.currentAllowedValues?.length || (this.isSpotEditEnable &&
+      !this.currentAllowedValues?.length)) && !this.currentAddonAllowedValues?.length;
   }
 
   get isAllowedValues() {
-    return true;
-    //return !this.listDataItem && !this.currentKibbutzAllowedValues?.length && (this.currentAllowedValues?.length || this.testStep?.kibbutzTemplate?.isConditionalIF || this.testStep?.kibbutzTemplate?.isConditionalWhileLoop)
+    return !this.listDataItem && !this.currentAddonAllowedValues?.length && (this.currentAllowedValues?.length || this.testStep?.addonTemplate?.stepActionType == StepActionType.IF_CONDITION || this.testStep?.addonTemplate?.isConditionalWhileLoop)
   }
 
   get isKibbutzAllowedValues(){
-    return false;
-    //return !this.listDataItem && this.currentKibbutzTemplate && this.currentKibbutzAllowedValues;
+    return !this.listDataItem && this.currentAddonTemplate && this.currentAddonAllowedValues;
   }
 
   selectTestDataProfile(testdata) {
-    //if(!this.isSpotEditEnable) {
-    //  this.resetTestData();
-    //}
+    if(!this.isSpotEditEnable) {
+      this.resetTestData();
+    }
     this.resetCFArguments();
     this.currentTestDataType = TestDataType.raw;
     this.assignDataValue(testdata.name || testdata, this.testDataPlaceholder());
     this.showDataTypes = false;
     if(testdata instanceof TestData) {
-      //this.selectedTestDataProfile = testdata;
-      //if(this.testStep.isTestDataParameter)
-      //  this.fetchTestDataSet();
+      this.selectedTestDataProfile = testdata;
+      if(this.testStep.isTestdataParameter)
+        this.fetchTestDataSet();
     }
   }
 
