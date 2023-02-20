@@ -21,15 +21,17 @@ COPY server/target/testsigma-server.jar /opt/app/testsigma-server.jar
 COPY server/target/lib/ /opt/app/lib/
 COPY server/src/main/scripts/posix/start.sh /opt/app/
 
-RUN rm -f /etc/nginx/conf.d/default.conf
-RUN chmod +x /opt/app/start.sh
-RUN chmod +x /opt/app/entrypoint.sh
-
 ENV IS_DOCKER_ENV=true
 ENV MYSQL_HOST_NAME=${MYSQL_HOST_NAME:-mysql}
 ENV TS_DATA_DIR=/opt/app/ts_data
 ENV TESTSIGMA_WEB_PORT=${TESTSIGMA_WEB_PORT:-443}
 ENV TESTSIGMA_SERVER_PORT=${TESTSIGMA_SERVER_PORT:-9090}
+ENV TESTSIGMA_SERVER_URL=${TESTSIGMA_SERVER_URL:-'http://localhost'}
+
+RUN rm -f /etc/nginx/conf.d/default.conf
+RUN chmod +x /opt/app/start.sh
+RUN chmod +x /opt/app/entrypoint.sh
+
 
 EXPOSE $TESTSIGMA_WEB_PORT
 EXPOSE $TESTSIGMA_SERVER_PORT
